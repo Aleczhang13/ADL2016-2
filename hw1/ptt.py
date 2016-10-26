@@ -1,3 +1,15 @@
+"""Multi-threaded word2vec unbatched skip-gram model.
+Trains the model described in:
+(Mikolov, et. al.) Efficient Estimation of Word Representations in Vector Space
+ICLR 2013.
+http://arxiv.org/abs/1301.3781
+This model does true SGD (i.e. no minibatching). To do this efficiently, custom
+ops are used to sequentially process data within a 'batch'.
+The key ops used are:
+* skipgram custom op that does input processing.
+* neg_train custom op that efficiently calculates and applies the gradient using
+  true SGD.
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -6,34 +18,23 @@ import os
 import sys
 import threading
 import time
+
 from six.moves import xrange  # pylint: disable=redefined-builtin
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from tensorflow.models.embedding import gen_word2vec as word2vec
 
-import getopt
+from tensorflow.models.embedding import gen_word2vec as word2vec
 
 flags = tf.app.flags
 
-output_f_name = ''
-option, _ = getopt.getopt(sys.argv[1:], 'i:o:', ['-i','-o'])
-for opt, arg in option:
-    if opt == '-i':
-        flags.DEFINE_string(
-            "train_data", arg,
-            "Training data. E.g., unzipped file http://mattmahoney.net/dc/text8.zip.")
-    elif opt == '-o':
-        output_f_name = arg + 'raw_word2vec.txt'
-
-
-
-
-
 flags.DEFINE_string("save_path", "", "Directory to write the model.")
 flags.DEFINE_string(
-    "eval_data", None, "Analogy questions. "
+    "train_data", "pre_corpus",
+    "Training data. E.g., unzipped file http://mattmahoney.net/dc/text8.zip.")
+flags.DEFINE_string(
+    "eval_data", "eval.txt", "Analogy questions. "
     "See README.md for how to get 'questions-words.txt'.")
 flags.DEFINE_integer("embedding_size", 200, "The embedding dimension size.")
 flags.DEFINE_integer(
@@ -48,7 +49,7 @@ flags.DEFINE_integer("batch_size", 512,
                      "(no minibatching).")
 flags.DEFINE_integer("concurrent_steps", 12,
                      "The number of concurrent training steps.")
-flags.DEFINE_integer("window_size", 5,
+flags.DEFINE_integer("window_size", 6,
                      "The number of words to predict to the left and right "
                      "of the target word.")
 flags.DEFINE_integer("min_count", 5,
@@ -75,11 +76,13 @@ class Options(object):
 
     # Embedding dimension.
     self.emb_dim = FLAGS.embedding_size
+    
 
     # Training options.
 
     # The training text file.
     self.train_data = FLAGS.train_data
+    print(self.train_data)
 
     # Number of negative samples per example.
     self.num_samples = FLAGS.num_neg_samples
@@ -110,6 +113,10 @@ class Options(object):
     # Where to write out summaries.
     self.save_path = FLAGS.save_path
 
+    # Eval options.
+
+    # The text file for eval.
+    self.eval_data = FLAGS.eval_data
 
 
 class Word2Vec(object):
@@ -121,6 +128,32 @@ class Word2Vec(object):
     self._word2id = {}
     self._id2word = []
     self.build_graph()
+    self.build_eval_graph()
+    self.save_vocab()
+
+  def read_analogies(self):
+    """Reads through the analogy question file.
+    Returns:
+      questions: a [n, 4] numpy array containing the analogy question's
+                 word ids.
+      questions_skipped: questions skipped due to unknown words.
+    """
+    questions = []
+    questions_skipped = 0
+    with open(self._options.eval_data, "rb") as analogy_f:
+      for line in analogy_f:
+        if line.startswith(b":"):  # Skip comments.
+          continue
+        words = line.strip().lower().split(b" ")
+        ids = [self._word2id.get(w.strip()) for w in words]
+        if None in ids or len(ids) != 4:
+          questions_skipped += 1
+        else:
+          questions.append(np.array(ids))
+    print("Eval analogy file: ", self._options.eval_data)
+    print("Questions: ", len(questions))
+    print("Skipped: ", questions_skipped)
+    self._analogy_questions = np.array(questions, dtype=np.int32)
 
   def build_graph(self):
     """Build the model graph."""
@@ -183,9 +216,9 @@ class Word2Vec(object):
     self.global_step = global_step
     self._epoch = current_epoch
     self._words = total_words_processed
-    tf.initialize_all_variables().run()
 
   def save_vocab(self):
+    """Save the vocabulary to a file so the model can be reloaded."""
     opts = self._options
     with open(os.path.join(opts.save_path, "vocab.txt"), "w") as f:
       for i in xrange(opts.vocab_size):
@@ -193,6 +226,64 @@ class Word2Vec(object):
         f.write("%s %d\n" % (vocab_word,
                              opts.vocab_counts[i]))
 
+  def build_eval_graph(self):
+    """Build the evaluation graph."""
+    # Eval graph
+    opts = self._options
+
+    # Each analogy task is to predict the 4th word (d) given three
+    # words: a, b, c.  E.g., a=italy, b=rome, c=france, we should
+    # predict d=paris.
+
+    # The eval feeds three vectors of word ids for a, b, c, each of
+    # which is of size N, where N is the number of analogies we want to
+    # evaluate in one batch.
+    analogy_a = tf.placeholder(dtype=tf.int32)  # [N]
+    analogy_b = tf.placeholder(dtype=tf.int32)  # [N]
+    analogy_c = tf.placeholder(dtype=tf.int32)  # [N]
+
+    # Normalized word embeddings of shape [vocab_size, emb_dim].
+    nemb = tf.nn.l2_normalize(self._w_in, 1)
+
+    # Each row of a_emb, b_emb, c_emb is a word's embedding vector.
+    # They all have the shape [N, emb_dim]
+    a_emb = tf.gather(nemb, analogy_a)  # a's embs
+    b_emb = tf.gather(nemb, analogy_b)  # b's embs
+    c_emb = tf.gather(nemb, analogy_c)  # c's embs
+
+    # We expect that d's embedding vectors on the unit hyper-sphere is
+    # near: c_emb + (b_emb - a_emb), which has the shape [N, emb_dim].
+    target = c_emb + (b_emb - a_emb)
+
+    # Compute cosine distance between each pair of target and vocab.
+    # dist has shape [N, vocab_size].
+    dist = tf.matmul(target, nemb, transpose_b=True)
+
+    # For each question (row in dist), find the top 4 words.
+    _, pred_idx = tf.nn.top_k(dist, 4)
+
+    # Nodes for computing neighbors for a given word according to
+    # their cosine distance.
+    nearby_word = tf.placeholder(dtype=tf.int32)  # word id
+    nearby_emb = tf.gather(nemb, nearby_word)
+    nearby_dist = tf.matmul(nearby_emb, nemb, transpose_b=True)
+    nearby_val, nearby_idx = tf.nn.top_k(nearby_dist,
+                                         min(1000, opts.vocab_size))
+
+    # Nodes in the construct graph which are used by training and
+    # evaluation to run/feed/fetch.
+    self._analogy_a = analogy_a
+    self._analogy_b = analogy_b
+    self._analogy_c = analogy_c
+    self._analogy_pred_idx = pred_idx
+    self._nearby_word = nearby_word
+    self._nearby_val = nearby_val
+    self._nearby_idx = nearby_idx
+
+    # Properly initialize all variables.
+    tf.initialize_all_variables().run()
+
+    self.saver = tf.train.Saver()
 
   def _train_thread_body(self):
     initial_epoch, = self._session.run([self._epoch])
@@ -215,7 +306,7 @@ class Word2Vec(object):
 
     last_words, last_time = initial_words, time.time()
     while True:
-      time.sleep(2)
+      time.sleep(5)  # Reports our progress once a while.
       (epoch, step, words, lr) = self._session.run(
           [self._epoch, self.global_step, self._words, self._lr])
       now = time.time()
@@ -231,17 +322,95 @@ class Word2Vec(object):
     for t in workers:
       t.join()
 
+  def _predict(self, analogy):
+    """Predict the top 4 answers for analogy questions."""
+    idx, = self._session.run([self._analogy_pred_idx], {
+        self._analogy_a: analogy[:, 0],
+        self._analogy_b: analogy[:, 1],
+        self._analogy_c: analogy[:, 2]
+    })
+    return idx
+
+  def eval(self):
+    """Evaluate analogy questions and reports accuracy."""
+
+    # How many questions we get right at precision@1.
+    correct = 0
+
+    try:
+      total = self._analogy_questions.shape[0]
+    except AttributeError as e:
+      raise AttributeError("Need to read analogy questions.")
+
+    start = 0
+    while start < total:
+      limit = start + 2500
+      sub = self._analogy_questions[start:limit, :]
+      idx = self._predict(sub)
+      start = limit
+      for question in xrange(sub.shape[0]):
+        for j in xrange(4):
+          if idx[question, j] == sub[question, 3]:
+            # Bingo! We predicted correctly. E.g., [italy, rome, france, paris].
+            correct += 1
+            break
+          elif idx[question, j] in sub[question, :3]:
+            # We need to skip words already in the question.
+            continue
+          else:
+            # The correct label is not the precision@1
+            break
+    print()
+    if total == 0:
+      print("total = 0")
+    else:
+      print("Eval %4d/%d accuracy = %4.1f%%" % (correct, total,
+                                              correct * 100.0 / total))
+
+  def analogy(self, w0, w1, w2):
+    """Predict word w3 as in w0:w1 vs w2:w3."""
+    wid = np.array([[self._word2id.get(w, 0) for w in [w0, w1, w2]]])
+    idx = self._predict(wid)
+    for c in [self._id2word[i] for i in idx[0, :]]:
+      if c not in [w0, w1, w2]:
+        print(c)
+        break
+    print("unknown")
+
+  def nearby(self, words, num=20):
+    """Prints out nearby words given a list of words."""
+    ids = np.array([self._word2id.get(x, 0) for x in words])
+    vals, idx = self._session.run(
+        [self._nearby_val, self._nearby_idx], {self._nearby_word: ids})
+    for i in xrange(len(words)):
+      print("\n%s\n=====================================" % (words[i]))
+      for (neighbor, distance) in zip(idx[i, :num], vals[i, :num]):
+        print("%-20s %6.4f" % (self._id2word[neighbor], distance))
+
+
+def _start_shell(local_ns=None):
+  # An interactive shell is useful for debugging/development.
+  import IPython
+  user_ns = {}
+  if local_ns:
+    user_ns.update(local_ns)
+  user_ns.update(globals())
+  IPython.start_ipython(argv=[], user_ns=user_ns)
+
+
 def main(_):
   opts = Options()
   with tf.Graph().as_default(), tf.Session() as session:
     with tf.device("/cpu:0"):
       model = Word2Vec(opts, session)
+      model.read_analogies()
     for _ in tqdm(range(opts.epochs_to_train)):
       model.train()  # Process one epoch
+      model.eval()
 
     id2word=model._id2word
     W=session.run(model._w_in)
-    with open(output_f_name,'w') as fout:
+    with open('ptt_embedding.txt','w') as fout:
       for x in range(len(id2word)):
         fout.write(id2word[x].decode('utf-8')+' ')
         for y in range(len(W[0])):
