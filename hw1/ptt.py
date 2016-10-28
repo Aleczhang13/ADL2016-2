@@ -32,9 +32,9 @@ flags.DEFINE_string("save_path", "", "Directory to write the model.")
 flags.DEFINE_string(
     "train_data", "pre_corpus",
     "Training data. E.g., unzipped file http://mattmahoney.net/dc/text8.zip.")
-flags.DEFINE_integer("embedding_size", 256, "The embedding dimension size.")
+flags.DEFINE_integer("embedding_size", 300, "The embedding dimension size.")
 flags.DEFINE_integer(
-    "epochs_to_train", 2,
+    "epochs_to_train", 20,
     "Number of epochs to train. Each epoch processes the training data once "
     "completely.")
 flags.DEFINE_float("learning_rate", 0.025, "Initial learning rate.")
@@ -45,7 +45,7 @@ flags.DEFINE_integer("batch_size", 512,
                      "(no minibatching).")
 flags.DEFINE_integer("concurrent_steps", 12,
                      "The number of concurrent training steps.")
-flags.DEFINE_integer("window_size", 5,
+flags.DEFINE_integer("window_size", 8,
                      "The number of words to predict to the left and right "
                      "of the target word.")
 flags.DEFINE_integer("min_count", 2,

@@ -14,8 +14,8 @@ class NotFitToCorpusError(Exception):
     pass
 
 class GloVeModel():
-    def __init__(self, embedding_size, context_size, max_vocab_size=10, min_occurrences=1,
-                 scaling_factor=3.0/4.0, cooccurrence_cap=100, batch_size=2, learning_rate=0.05):
+    def __init__(self, embedding_size, context_size, max_vocab_size=70000, min_occurrences=1,
+                 scaling_factor=3.0/4.0, cooccurrence_cap=100, batch_size=512, learning_rate=0.05):
         self.embedding_size = embedding_size
         if isinstance(context_size, tuple):
             self.left_context, self.right_context = context_size
@@ -223,9 +223,9 @@ output_file_name = 'raw_glove'
 corpus = []
 with open(input_file_name, 'rt') as f:
     corpus=f.read().split()
-model=GloVeModel(embedding_size=5,context_size=2)
+model=GloVeModel(embedding_size=200,context_size=12)
 model.fit_to_corpus(corpus[:])
-model.train(num_epochs=5)
+model.train(num_epochs=250)
 embeds = model.embeddings
 with open(output_file_name,'w') as output:
     for wid, w in enumerate(model.words):

@@ -1,6 +1,7 @@
 hw1/text8
-hw1/text8
-hw1/sample.py
-hw1/output
 hw1/text8.zip
 *.python-version
+*.#*
+hw1/pre_corpus
+hw1/ptt_corpus.txt
+hw1/output_ptt.txt
