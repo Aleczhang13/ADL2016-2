@@ -1,12 +1,12 @@
-from tqdm import tqdm
+import sys
 
-raw_data = open('ptt_corpus.txt','r').readlines()
+raw_data = open(sys.argv[1],'r').readlines()
 stopword = open('stopword','r').read().split()
 
     
 f = open('pre_corpus','w')
 i = 0
-for line in tqdm(raw_data):
+for line in raw_data:
     for w in line.split():
         if w in stopword:
             f.write(w+str(i)+' ')

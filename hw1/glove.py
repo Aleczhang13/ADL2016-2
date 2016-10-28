@@ -5,7 +5,6 @@ from random import shuffle
 import tensorflow as tf
 import getopt
 import sys
-from tqdm import tqdm
 
 
 class NotTrainedError(Exception):
@@ -129,7 +128,7 @@ class GloVeModel():
             if should_write_summaries:
                 summary_writer = tf.train.SummaryWriter(log_dir, graph_def=session.graph_def)
             tf.initialize_all_variables().run()
-            for epoch in tqdm(range(num_epochs)):
+            for epoch in range(num_epochs):
                 shuffle(batches)
                 for batch_index, batch in enumerate(batches):
                     i_s, j_s, counts = batch
@@ -217,14 +216,9 @@ def _batchify(batch_size, *sequences):
 
 
 
-input_file_name = ''
-output_file_name = ''
-option, _ = getopt.getopt(sys.argv[1:], 'i:o:', ['-i','-o'])
-for opt, arg in option:
-    if opt == '-i':
-        input_file_name = arg
-    elif opt == '-o':
-        output_file_name = arg + 'raw_glove.txt'
+input_file_name = sys.argv[1]
+# output_file_name = sys.argv[2]+'raw_glove'
+output_file_name = 'raw_glove'
 
 corpus = []
 with open(input_file_name, 'rt') as f:

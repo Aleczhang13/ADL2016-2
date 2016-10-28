@@ -10,22 +10,15 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
 from tensorflow.models.embedding import gen_word2vec as word2vec
 
 import getopt
 
 flags = tf.app.flags
 
-output_f_name = ''
-option, _ = getopt.getopt(sys.argv[1:], 'i:o:', ['-i','-o'])
-for opt, arg in option:
-    if opt == '-i':
-        flags.DEFINE_string(
-            "train_data", arg,
-            "Training data. E.g., unzipped file http://mattmahoney.net/dc/text8.zip.")
-    elif opt == '-o':
-        output_f_name = arg + 'raw_word2vec.txt'
+flags.DEFINE_string(
+     "train_data", sys.argv[1],
+     "Training data. E.g., unzipped file http://mattmahoney.net/dc/text8.zip.")
 
 
 
@@ -37,7 +30,7 @@ flags.DEFINE_string(
     "See README.md for how to get 'questions-words.txt'.")
 flags.DEFINE_integer("embedding_size", 200, "The embedding dimension size.")
 flags.DEFINE_integer(
-    "epochs_to_train", 15,
+    "epochs_to_train", 1,
     "Number of epochs to train. Each epoch processes the training data once "
     "completely.")
 flags.DEFINE_float("learning_rate", 0.025, "Initial learning rate.")
@@ -236,12 +229,12 @@ def main(_):
   with tf.Graph().as_default(), tf.Session() as session:
     with tf.device("/cpu:0"):
       model = Word2Vec(opts, session)
-    for _ in tqdm(range(opts.epochs_to_train)):
+    for _ in range(opts.epochs_to_train):
       model.train()  # Process one epoch
 
     id2word=model._id2word
     W=session.run(model._w_in)
-    with open(output_f_name,'w') as fout:
+    with open('raw_w2v','w') as fout:
       for x in range(len(id2word)):
         fout.write(id2word[x].decode('utf-8')+' ')
         for y in range(len(W[0])):
