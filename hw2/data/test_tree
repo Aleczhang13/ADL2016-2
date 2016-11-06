@@ -1,0 +1,25 @@
+(S
+  (NP (DT the) (NN question))
+  (VP (VBZ is)
+    (NP
+      (NP (DT a) (JJ good) (CD one))
+      (, ,)
+      (CC and)
+      (NP
+        (NP (NN one))
+        (SBAR
+          (WHNP (WDT that))
+          (S
+            (VP (MD could)
+              (VP (VB be)
+                (VP (VBN pondered)))))))))
+  (. .))
+
+(S (CC but)
+  (, ,)
+  (NP (PRP it))
+  (VP (VBZ 's)
+    (ADVP (RBS most) (RB certainly))
+    (RB not)
+    (ADJP (JJ saturday-night-friendly) (RB fare)))
+  (. .))
