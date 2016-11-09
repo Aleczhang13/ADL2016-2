@@ -39,8 +39,7 @@ class Tree:
 
     def parse(self, tokens, parent=None):
         if len(tokens) == 0:
-            parent = parent.left
-            return
+            return None
         assert tokens[0] == self.open, "Malformed tree"
         assert tokens[-1] == self.close, "Malformed tree"
 
@@ -71,9 +70,12 @@ class Tree:
             return node
 
         node.left = self.parse(tokens[2:split], parent=node)
-        node.right = self.parse(tokens[split:-1], parent=node)
-
-        return node
+        right = self.parse(tokens[split:-1], parent=node)
+        if right is not None:
+            node.right = right
+            return node
+        return node.left
+        # node.right = self.parse(tokens[split:-1], parent=node)
 
     def get_words(self):
         leaves = getLeaves(self.root)
@@ -137,44 +139,19 @@ def loadTrees(label, dataSet='train'):
     return trees
 
 
-def simplified_data():
+def simplified_data(pos_f, neg_f, test_f):
     rndstate = random.getstate()
     random.seed(0)
-    pos_trees = loadTrees(dataSet='data/test_tree_pos', label =1)
+    pos_trees = loadTrees(dataSet=pos_f, label =1)
+    neg_trees = loadTrees(dataSet=neg_f, label =0)
     pos_trees = sorted(pos_trees, key=lambda t: len(t.get_words()))
-    train = pos_trees[:]
+    pos_trees = sorted(neg_trees, key=lambda t: len(t.get_words()))
+    train =  pos_trees[:] + neg_trees[:]
+    test_trees = loadTrees(dataSet=test_f, label =1)
+    test = test_trees[:]
+
     random.shuffle(train)
+    random.shuffle(test)
     random.setstate(rndstate)
-    return train
+    return train, test
 
-
-    ## code start here
-    # # trees = loadTrees('train') + loadTrees('dev') + loadTrees('test')
-    # # test = loadTrees(dataSet='trees/dev.txt', label = 1)
-    # pos_trees = loadTrees(dataSet='data/bin_tree.pos', label =1)
-    # neg_trees = loadTrees(dataSet='data/bin_tree.neg', label = 0)
-
-    # # #filter extreme trees
-    # # pos_trees = [t for t in trees if t.root.label==4]
-    # # neg_trees = [t for t in trees if t.root.label==0]
-
-    # #binarize labels
-    # # binarize_labels(pos_trees)
-    # # binarize_labels(neg_trees)
-
-    # #split into train, dev, test
-    # print len(pos_trees), len(neg_trees)
-    # pos_trees = sorted(pos_trees, key=lambda t: len(t.get_words()))
-    # neg_trees = sorted(neg_trees, key=lambda t: len(t.get_words()))
-    # # num_train/=2
-    # # num_dev/=2
-    # # num_test/=2
-    # train = pos_trees[:] + neg_trees[:]
-    # # dev = pos_trees[num_train : num_train+num_dev] + neg_trees[num_train : num_train+num_dev]
-    # # test = pos_trees[num_train+num_dev : num_train+num_dev+num_test] + neg_trees[num_train+num_dev : num_train+num_dev+num_test]
-    # random.shuffle(train)
-    # # random.shuffle(dev)
-    # # random.shuffle(test)
-    # random.setstate(rndstate)
-    # # return train, test
-    # return train

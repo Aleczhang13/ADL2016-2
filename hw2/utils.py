@@ -5,22 +5,11 @@ class Vocab(object):
     def __init__(self):
         self.word_to_index = {}
         self.index_to_word = {}
-        self.word_freq = defaultdict(int)
-        self.total_words = 0
         self.unknown = '<unk>'
-        self.add_word(self.unknown, count=0)
 
-    def add_word(self, word, count=1):
-        if word not in self.word_to_index:
-            index = len(self.word_to_index)
-            self.word_to_index[word] = index
-            self.index_to_word[index] = word
-        self.word_freq[word] += count
-
-    def construct(self, words):
-        for word in words:
-            self.add_word(word)
-        self.total_words = float(sum(self.word_freq.values()))
+    def construct(self, index_to_word, word_to_index):
+        self.word_to_index = word_to_index
+        self.index_to_word = index_to_word
 
     def encode(self, word):
         if word not in self.word_to_index:
@@ -30,5 +19,3 @@ class Vocab(object):
     def decode(self, index):
         return self.index_to_word[index]
 
-    def __len__(self):
-        return len(self.word_freq)
