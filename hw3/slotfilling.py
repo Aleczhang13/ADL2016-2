@@ -58,6 +58,7 @@ tf.app.flags.DEFINE_boolean("bidirectional_rnn", True,
 tf.app.flags.DEFINE_string("task", "tagging", "Options: joint; intent; tagging")
 tf.app.flags.DEFINE_string("goal", "", "predict, train")
 tf.app.flags.DEFINE_string("model_name","","model name")
+tf.app.flags.DEFINE_string("answer_path","","answer file path")
 FLAGS = tf.app.flags.FLAGS
 
 if FLAGS.max_sequence_length == 0:
@@ -370,7 +371,7 @@ def predict(): # mode: Eval, Test
         if task['tagging'] == 1:
           word_list.append([rev_vocab[x[0]] for x in encoder_inputs[:sequence_length[0]]])
           hyp_tag_list.append([rev_tag_vocab[np.argmax(x)] for x in tagging_logits[:sequence_length[0]]])
-      with open('./result/slot.txt','w') as output_f:
+      with open(FLAGS.answer_path,'w') as output_f:
         for line in hyp_tag_list:
           output_f.write(' '.join(line))
           output_f.write('\n')

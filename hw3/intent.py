@@ -56,7 +56,7 @@ tf.app.flags.DEFINE_boolean("bidirectional_rnn", True,
                             "Use birectional RNN")
 tf.app.flags.DEFINE_string("task", "intent", "Options: joint; intent; tagging")
 tf.app.flags.DEFINE_string("goal", "", "predict, train")
-tf.app.flags.DEFINE_string("model_name","","model name")
+tf.app.flags.DEFINE_string("answer_path","","answer file path")
 FLAGS = tf.app.flags.FLAGS
 
 if FLAGS.max_sequence_length == 0:
@@ -268,7 +268,7 @@ def predict(): # mode: Eval, Test
         hyp_label = None
         hyp_label = np.argmax(classification_logits[0],0)
         hyp_label_list.append(rev_label_vocab[hyp_label])
-        with open('./result/intent.txt','w') as output_f:
+        with open(FLAGS.answer_path,'w') as output_f:
           output_f.write('\n'.join(hyp_label_list))
 
 def main(_):
