@@ -12,7 +12,7 @@ with open('./data/atis.train.w-intent.iob') as in_f:
     with open('./data/train.label','w') as label_f, open('./data/train.seq.in','w') as seq_f, open('./data/train.seq.out','w') as seq_out_f:
         with open('./data/dev.label','w') as d_label_f, open('./data/dev.seq.in','w') as d_seq_f, open('./data/dev.seq.out','w') as d_seq_out_f:
             lines = in_f.readlines()
-            for line in lines[:-300]:
+            for line in lines[:-1]:
                 line = line.split('EOS')
                 for w in line[0].split()[0:]:
                     seq_f.write(w+' ')
@@ -22,7 +22,7 @@ with open('./data/atis.train.w-intent.iob') as in_f:
                 seq_out_f.write('\n')
                 label_f.write(line[1].split()[-1])
                 label_f.write('\n')
-            for line in lines[-300:]:
+            for line in lines[-1:]:
                 line = line.split('EOS')
                 for w in line[0].split()[0:]:
                     d_seq_f.write(w+' ')

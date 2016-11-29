@@ -32,7 +32,7 @@ tf.app.flags.DEFINE_float("max_gradient_norm", 5.0,
 tf.app.flags.DEFINE_integer("batch_size", 128,
                             "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("size", 128, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("word_embedding_size", 256, "Size of the word embedding")
+tf.app.flags.DEFINE_integer("word_embedding_size", 200, "Size of the word embedding")
 tf.app.flags.DEFINE_integer("num_layers", 1, "Number of layers in the model.")
 tf.app.flags.DEFINE_integer("in_vocab_size", 10000, "max vocab Size.")
 tf.app.flags.DEFINE_integer("out_vocab_size", 10000, "max tag vocab Size.")
@@ -41,9 +41,9 @@ tf.app.flags.DEFINE_string("data_dir", "./data/", "Data directory")
 tf.app.flags.DEFINE_string("train_dir", "./slottrain/", "Training directory.")
 tf.app.flags.DEFINE_integer("max_train_data_size", 0,
                             "Limit on the size of training data (0: no limit).")
-tf.app.flags.DEFINE_integer("steps_per_checkpoint", 500,
+tf.app.flags.DEFINE_integer("steps_per_checkpoint", 1000,
                             "How many training steps to do per checkpoint.")
-tf.app.flags.DEFINE_integer("max_training_steps", 5000,
+tf.app.flags.DEFINE_integer("max_training_steps", 8000,
                             "Max training steps.")
 tf.app.flags.DEFINE_integer("max_test_data_size", 10000,
                             "Max size of test set.")
