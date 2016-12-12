@@ -1,4 +1,4 @@
-file="./dl_hw4_data.zip"
+file="./hw4_data.zip"
 if [ -f "$file" ]
 then
 	  echo "$file found."
