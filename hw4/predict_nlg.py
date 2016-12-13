@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Binary for training translation models and decoding from them.
+"""Binary for training translation models 4and decoding from them.
 
 Running this program without --decode will download the WMT corpus into
 the directory specified as --data_dir and tokenize it in a very basic way,
@@ -138,7 +138,7 @@ def create_model(session, forward_only):
       FLAGS.learning_rate_decay_factor,
       forward_only=forward_only,
       dtype=dtype)
-  model.saver.restore(session, './nlg_train/nlg.ckpt-4500')
+  model.saver.restore(session, './nlg_train/nlg.ckpt-17500')
   return model
 
 
