@@ -5,7 +5,6 @@ import replay
 import time
 import argparse
 import dqn as DQN
-from atari_environment import AtariEnvironment
 from state import State
 
 class Agent(object):

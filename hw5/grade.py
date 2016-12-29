@@ -23,7 +23,6 @@ with tf.Session() as sess:
 
     # Init agent
     agent = Agent(sess, env.ale.getMinimalActionSet())
-    print "hi"
     action_repeat, screen_type = agent.getSetting()
 
     # Set env setting
