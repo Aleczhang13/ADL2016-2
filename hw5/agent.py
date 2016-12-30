@@ -11,6 +11,7 @@ class Agent(object):
     def __init__(self, sess, min_action_set):
         self.sess = sess
         self.min_action_set = min_action_set
+        print self.min_action_set
         self.build_dqn()
 
     def build_dqn(self):
