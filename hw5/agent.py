@@ -14,7 +14,6 @@ class Agent(object):
         self.build_dqn()
 
     def build_dqn(self):
-        self.state = None
         parser = argparse.ArgumentParser()
         parser.add_argument("--train-epoch-steps", type=int, default=250000, help="how many steps (=4 frames) to run during a training epoch (approx -- will finish current game)")
         parser.add_argument("--eval-epoch-steps", type=int, default=125000, help="how many steps (=4 frames) to run during an eval epoch (approx -- will finish current game)")
@@ -32,8 +31,8 @@ class Agent(object):
         args = parser.parse_args()
         print 'Arguments: %s' % (args)
         baseOutputDir = "./models/"
-        self.dqn = DQN.DeepQNetwork(4, baseOutputDir, args,self.sess)
-        replayMemory = replay.ReplayMemory(args)
+        self.dqn = DQN.DeepQNetwork(len(self.min_action_set), baseOutputDir, args,self.sess)
+        self.state = None
 
     def getSetting(self):
         action_repeat = 4
@@ -45,7 +44,7 @@ class Agent(object):
        # Choose next action
        epsilon = 0.05
        if self.state is None or random.random() > (1 - epsilon):
-           action = random.randrange(4)
+           action = random.randrange(len(self.min_action_set))
            self.state = State().stateByAddingScreen(screen)
            return self.min_action_set[action]
        self.state = self.state.stateByAddingScreen(screen)
