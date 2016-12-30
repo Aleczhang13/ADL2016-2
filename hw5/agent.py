@@ -32,18 +32,10 @@ class Agent(object):
         args = parser.parse_args()
         print 'Arguments: %s' % (args)
         baseOutputDir = "./models/"
-        State.setup(args)
-        self.dqn = DQN.DeepQNetwork(4, baseOutputDir, args)
+        self.dqn = DQN.DeepQNetwork(4, baseOutputDir, args,self.sess)
         replayMemory = replay.ReplayMemory(args)
 
     def getSetting(self):
-        """
-        # TODO
-            You can only modify these three parameters.
-            Adding any other parameters are not allowed.
-            1. action_repeat: number of time for repeating the same action 
-            2. screen_type: return 0 for RGB; return 1 for GrayScale
-        """
         action_repeat = 4
         screen_type = 0
         return action_repeat, screen_type

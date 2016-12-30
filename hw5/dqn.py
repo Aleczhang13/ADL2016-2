@@ -1,10 +1,8 @@
 import state
 import math
 import numpy as np
-import os
 import tensorflow as tf
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 
 gamma = .99
@@ -28,7 +26,7 @@ class GradientClippingOptimizer(tf.train.Optimizer):
         return self.optimizer.apply_gradients(*args, **kwargs)
 
 class DeepQNetwork:
-    def __init__(self, numActions, baseDir, args):
+    def __init__(self, numActions, baseDir, args,session):
         
         self.numActions = numActions
         self.baseDir = baseDir
@@ -38,10 +36,7 @@ class DeepQNetwork:
 
         self.staleSess = None
 
-        tf.set_random_seed(123456)
-        self.gpu_config = tf.ConfigProto(gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8))
-        self.sess = tf.Session(config=self.gpu_config)
-        
+        self.sess = session
         assert (len(tf.all_variables()) == 0),"Expected zero variables"
         self.x, self.y = self.buildNetwork('policy', True, numActions)
         assert (len(tf.trainable_variables()) == 10),"Expected 10 trainable_variables"
@@ -88,7 +83,7 @@ class DeepQNetwork:
 
         #self.summary_writer = tf.train.SummaryWriter(self.baseDir + '/tensorboard', self.sess.graph_def)
 
-        self.saver.restore(self.sess, "./models/model-23040000")
+        self.saver.restore(self.sess, "./models/model-best")
 
 
     def buildNetwork(self, name, trainable, numActions):
