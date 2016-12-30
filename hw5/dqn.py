@@ -83,7 +83,7 @@ class DeepQNetwork:
 
         #self.summary_writer = tf.train.SummaryWriter(self.baseDir + '/tensorboard', self.sess.graph_def)
 
-        self.saver.restore(self.sess, "./models/model-best")
+        self.saver.restore(self.sess, "./best_model.ckpt")
 
 
     def buildNetwork(self, name, trainable, numActions):
